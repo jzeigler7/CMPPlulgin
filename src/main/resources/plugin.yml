@@ -1,0 +1,26 @@
+name: CMPPlugin
+version: 1.0
+main: jzeigler7.cmpplugin.CMPPlugin
+api-version: 1.19
+authors: [ jzeigler7 ]
+description: A plugin for automating the CMP scoring process and other game functions
+commands:
+  startCMP:
+    description: Initiates a new CMP game.
+    usage: /<command>
+    aliases: [ startgame ]
+  getPhase:
+    description: Displays a message indicating the current phase of CMP.
+    usage: /<command>
+  setRef:
+    description: Sets a player's reference coordinate point for calculating score totals.
+    usage: /<command>
+    aliases: [ setreference ]
+  scoreMe:
+    description: Calculates a player's current score.
+    usage: /<command>
+    aliases: [ score ]
+  appraise:
+    description: Appraises the caller's currently held item stack.
+    usage: /<command>
+    aliases: [ appraise ]
