@@ -1,8 +1,5 @@
 package jzeigler7.cmpplugin.commands;
-import jzeigler7.cmpplugin.BinaryHeap;
-import jzeigler7.cmpplugin.Bluefier;
-import jzeigler7.cmpplugin.CMPPlugin;
-import jzeigler7.cmpplugin.gamePhase;
+import jzeigler7.cmpplugin.*;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -54,27 +51,11 @@ public class startCMP implements CommandExecutor, Listener {
                                         CMPPlugin.currentPhase = gamePhase.NONE;
                                         CMPPlugin.gameInProgress = false;
                                         sendMessageLater("The game has finished!", 0, "blue");
-                                        HashMap<Player, Double> playersToScores = new HashMap<>();
-                                        HashMap<Double, ArrayList<Player>> scoresToPlayers = new HashMap<>();
                                         if (referenceCoordinates.isEmpty()) {
                                             sendMessageLater("There were no scores to count!", 2, "blue");
 
                                         } else {
-                                            for (Player p: referenceCoordinates.keySet()) {
-                                                try {
-                                                    playersToScores.put(p.getPlayer(), scoreMe.getPlayerScore(p));
-                                                } catch (Exception e) {
-                                                    playersToScores.put(p.getPlayer(), 0.0);
-                                                }
-                                            }
-                                            double currentIteratedScore;
-                                            for (Player p: playersToScores.keySet()) {
-                                                currentIteratedScore = playersToScores.get(p);
-                                                if (!scoresToPlayers.containsKey(currentIteratedScore)) {
-                                                    scoresToPlayers.put(currentIteratedScore, new ArrayList<>());
-                                                }
-                                                scoresToPlayers.get(currentIteratedScore).add(p);
-                                            }
+                                            HashMap<Double, ArrayList<Player>> scoresToPlayers = Scorer.playerScoreMap();
                                             BinaryHeap<Double> scoreMaxHeap = new BinaryHeap<>(scoresToPlayers.keySet().toArray(new Double[scoresToPlayers.keySet().size()]), false);
                                             double currScore = scoreMaxHeap.remove();
                                             Player currPlayer = null;
@@ -93,7 +74,7 @@ public class startCMP implements CommandExecutor, Listener {
                                                 default:
                                                     int numTiedPlayers = scoresToPlayers.get(currScore).size();
                                                     sendMessageLater(("There was a " + numTiedPlayers + "-way tie for first place!"), 3);
-                                                    sendMessageLater(("The winners are " + getTieString(currScore, scoresToPlayers) + ", with a score of " + currScore + " points!"), 6);
+                                                    sendMessageLater(("The winners are " +Scorer.getTieString(currScore, scoresToPlayers) + ", with a score of " + currScore + " points!"), 6);
                                                     lastWait = 6;
                                             }
                                             lastWait += 5;
@@ -115,7 +96,7 @@ public class startCMP implements CommandExecutor, Listener {
                                                             " - " + currScore, iterativeWaitTime, (rank == 2) ? "silver":"bronze");
                                                             break;
                                                         default:
-                                                            sendMessageLater("Rank " + rank + ": " + getTieString(currScore, scoresToPlayers) +
+                                                            sendMessageLater("Rank " + rank + ": " + Scorer.getTieString(currScore, scoresToPlayers) +
                                                             " - " + currScore, iterativeWaitTime, (rank == 2) ? "silver":"bronze");
                                                     }
                                                     rank++;
@@ -138,27 +119,7 @@ public class startCMP implements CommandExecutor, Listener {
         return true;
     }
 
-    /**
-     * Creates a string listing all the players who share a common total point value
-     * at the end of CMP gameplay.
-     * @param currScore The score to be checked
-     * @param scoresToPlayers A map of all unique score values generated by the end-of-game
-     *                        algorithm to all the players that achieved this exact score
-     * @return A string listing all the players who share the currScore
-     */
-    public String getTieString(double currScore, HashMap<Double, ArrayList<Player>> scoresToPlayers) {
-        int numTiedPlayers = scoresToPlayers.get(currScore).size();
-        String tieString = "";
-        if (numTiedPlayers == 2) {
-            tieString = (scoresToPlayers.get(currScore).get(0) + " and " + scoresToPlayers.get(currScore).get(1) + ".");
-        } else {
-            for (int i = 0; i < numTiedPlayers - 1; i++) {
-                tieString += (scoresToPlayers.get(currScore).get(i) + ", ");
-            }
-            tieString += ("and " + scoresToPlayers.get(currScore).get(numTiedPlayers - 1));
-        }
-        return tieString;
-    }
+
 
     /**
      * Broadcasts a series of messages describing the first phase of CMP gameplay

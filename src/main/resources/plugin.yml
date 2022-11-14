@@ -17,10 +17,18 @@ commands:
     usage: /<command>
     aliases: [ setreference ]
   scoreMe:
-    description: Calculates a player's current score.
+    description: Calculates the sender's current score.
     usage: /<command>
     aliases: [ score ]
   appraise:
     description: Appraises the caller's currently held item stack.
     usage: /<command>
     aliases: [ appraise ]
+  score:
+    description: Calculates a given player's current score.
+    usage: /<command>
+    aliases: [ score ]
+  rankings:
+    description: Returns the current rankings of all players in the game.
+    usage: /<command>
+    aliases: [ rankings ]

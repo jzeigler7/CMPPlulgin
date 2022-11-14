@@ -42,6 +42,8 @@ public final class CMPPlugin extends JavaPlugin implements Listener {
         getCommand("setRef").setExecutor(new setRef());
         getCommand("scoreMe").setExecutor(new scoreMe());
         getCommand("appraise").setExecutor(new appraise());
+        getCommand("score").setExecutor(new score());
+        getCommand("rankings").setExecutor(new rankings());
         pointsMap.put(Material.SNOWBALL, 0.0025);
         pointsMap.put(Material.COARSE_DIRT, 0.01);
         pointsMap.put(Material.DIRT, 0.01);
