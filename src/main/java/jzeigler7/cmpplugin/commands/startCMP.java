@@ -1,5 +1,6 @@
 package jzeigler7.cmpplugin.commands;
 import jzeigler7.cmpplugin.BinaryHeap;
+import jzeigler7.cmpplugin.Bluefier;
 import jzeigler7.cmpplugin.CMPPlugin;
 import jzeigler7.cmpplugin.gamePhase;
 import org.bukkit.Bukkit;
@@ -29,10 +30,10 @@ public class startCMP implements CommandExecutor, Listener {
         if (sender.isOp()) {
             if (command.getName().equalsIgnoreCase("startCMP")) {
                 if (CMPPlugin.gameInProgress) {
-                    sender.sendMessage("CMP is already in progress!");
+                    sender.sendMessage(Bluefier.bluefy("CMP is already in progress!"));
                 } else {
                     if (args.length == 4) {
-                        sender.sendMessage("The game has begun!");
+                        sender.sendMessage(Bluefier.bluefy("The game has begun!"));
                         CMPPlugin.gameInProgress = true;
                         CMPPlugin.currentPhase = gamePhase.BEGINNING;
                         sendPhaseOneMessages(args[0]);
@@ -52,71 +53,87 @@ public class startCMP implements CommandExecutor, Listener {
                                     runMethodLater(() -> {
                                         CMPPlugin.currentPhase = gamePhase.NONE;
                                         CMPPlugin.gameInProgress = false;
-                                        sendMessageLater("The game has finished!", 0);
+                                        sendMessageLater("The game has finished!", 0, "blue");
                                         HashMap<Player, Double> playersToScores = new HashMap<>();
                                         HashMap<Double, ArrayList<Player>> scoresToPlayers = new HashMap<>();
-                                        for (Player p: referenceCoordinates.keySet()) {
-                                            playersToScores.put(p.getPlayer(), scoreMe.getPlayerScore(p));
-                                        }
-                                        double currentIteratedScore;
-                                        for (Player p: playersToScores.keySet()) {
-                                            currentIteratedScore = playersToScores.get(p);
-                                            if (!scoresToPlayers.containsKey(currentIteratedScore)) {
-                                                scoresToPlayers.put(currentIteratedScore, new ArrayList<>());
+                                        if (referenceCoordinates.isEmpty()) {
+                                            sendMessageLater("There were no scores to count!", 2, "blue");
+
+                                        } else {
+                                            for (Player p: referenceCoordinates.keySet()) {
+                                                try {
+                                                    playersToScores.put(p.getPlayer(), scoreMe.getPlayerScore(p));
+                                                } catch (Exception e) {
+                                                    playersToScores.put(p.getPlayer(), 0.0);
+                                                }
                                             }
-                                            scoresToPlayers.get(currentIteratedScore).add(p);
-                                        }
-                                        BinaryHeap<Double> scoreMaxHeap = new BinaryHeap<>(scoresToPlayers.keySet().toArray(new Double[scoresToPlayers.keySet().size()]), false);
-                                        double currScore = scoreMaxHeap.remove();
-                                        Player currPlayer = null;
-                                        int lastWait = 0;
-                                        switch (scoresToPlayers.get(currScore).size()) {
-                                            case 0:
-                                                sendMessageLater("There were no winners! If this message shows, there was an error in the scoring algorithm!", 3);
-                                                lastWait = 3;
-                                                break;
-                                            case 1:
-                                                currPlayer = scoresToPlayers.get(currScore).get(0);
-                                                sendMessageLater("The winner is...", 3);
-                                                sendMessageLater(currPlayer.getName() + ", with a final score of " + currScore + " points!", 8);
-                                                lastWait = 8;
-                                                break;
-                                            default:
-                                                int numTiedPlayers = scoresToPlayers.get(currScore).size();
-                                                sendMessageLater(("There was a " + numTiedPlayers + "-way tie for first place!"), 3);
-                                                sendMessageLater(("The winners are " + getTieString(currScore, scoresToPlayers) + ", with a score of " + currScore + " points!"), 6);
-                                                lastWait = 6;
-                                        }
-                                        lastWait += 5;
-                                        sendMessageLater("The runners-up, in descending point order are:", lastWait);
-                                        int rank = 2;
-                                        while (scoreMaxHeap.length() > 0) {
-                                            currScore = scoreMaxHeap.remove();
-                                            int iterativeWaitTime = ((lastWait) + (3 * rank) - 3);
+                                            double currentIteratedScore;
+                                            for (Player p: playersToScores.keySet()) {
+                                                currentIteratedScore = playersToScores.get(p);
+                                                if (!scoresToPlayers.containsKey(currentIteratedScore)) {
+                                                    scoresToPlayers.put(currentIteratedScore, new ArrayList<>());
+                                                }
+                                                scoresToPlayers.get(currentIteratedScore).add(p);
+                                            }
+                                            BinaryHeap<Double> scoreMaxHeap = new BinaryHeap<>(scoresToPlayers.keySet().toArray(new Double[scoresToPlayers.keySet().size()]), false);
+                                            double currScore = scoreMaxHeap.remove();
+                                            Player currPlayer = null;
+                                            int lastWait = 0;
                                             switch (scoresToPlayers.get(currScore).size()) {
                                                 case 0:
-                                                    sendMessageLater("How did this happen?", iterativeWaitTime);
+                                                    sendMessageLater("There were no winners! If this message shows, there was an error in the scoring algorithm!", 3, "blue");
+                                                    lastWait = 3;
                                                     break;
                                                 case 1:
                                                     currPlayer = scoresToPlayers.get(currScore).get(0);
-                                                    sendMessageLater("Rank " + rank + ": " + currPlayer.getName() + " - " + currScore, iterativeWaitTime);
+                                                    sendMessageLater("The winner is...", 3);
+                                                    sendMessageLater(currPlayer.getName() + ", with a final score of " + currScore + " points!", 8, "gold");
+                                                    lastWait = 8;
                                                     break;
                                                 default:
-                                                    sendMessageLater("Rank " + rank + ": " + getTieString(currScore, scoresToPlayers) + " - " + currScore, iterativeWaitTime);
+                                                    int numTiedPlayers = scoresToPlayers.get(currScore).size();
+                                                    sendMessageLater(("There was a " + numTiedPlayers + "-way tie for first place!"), 3);
+                                                    sendMessageLater(("The winners are " + getTieString(currScore, scoresToPlayers) + ", with a score of " + currScore + " points!"), 6);
+                                                    lastWait = 6;
                                             }
-                                            rank++;
+                                            lastWait += 5;
+                                            if ((referenceCoordinates.size() == 1)) {
+                                                sendMessageLater("They were the only player in the contest!", lastWait);
+                                            } else {
+                                                sendMessageLater("The runners-up, in descending point order are:", lastWait);
+                                                int rank = 2;
+                                                while (scoreMaxHeap.length() > 0) {
+                                                    currScore = scoreMaxHeap.remove();
+                                                    int iterativeWaitTime = ((lastWait) + (3 * rank) - 3);
+                                                    switch (scoresToPlayers.get(currScore).size()) {
+                                                        case 0:
+                                                            sendMessageLater("How did this happen?", iterativeWaitTime);
+                                                            break;
+                                                        case 1:
+                                                            currPlayer = scoresToPlayers.get(currScore).get(0);
+                                                            sendMessageLater("Rank " + rank + ": " + currPlayer.getName() +
+                                                            " - " + currScore, iterativeWaitTime, (rank == 2) ? "silver":"bronze");
+                                                            break;
+                                                        default:
+                                                            sendMessageLater("Rank " + rank + ": " + getTieString(currScore, scoresToPlayers) +
+                                                            " - " + currScore, iterativeWaitTime, (rank == 2) ? "silver":"bronze");
+                                                    }
+                                                    rank++;
+                                                }
+                                            }
+
                                         }
                                     }, Integer.parseInt(args[3]) * 60);
                                 }, Integer.parseInt(args[2]) * 60);
                             }, Integer.parseInt(args[1]) * 60);
                         }, Integer.parseInt(args[0]) * 60);
                     } else {
-                        sender.sendMessage("Include arguments!");
+                        sender.sendMessage(Bluefier.bronzify("Include arguments!"));
                     }
                 }
             }
         } else {
-            sender.sendMessage("Only operators may execute this command!");
+            sender.sendMessage(Bluefier.bronzify("Only operators may execute this command!"));
         }
         return true;
     }
@@ -193,6 +210,31 @@ public class startCMP implements CommandExecutor, Listener {
      * @param seconds The number of seconds that the message is to be delayed by
      */
     public void sendMessageLater(String message, int seconds) {
+        runMethodLater(() -> Bukkit.broadcastMessage(message), seconds);
+    }
+
+    /**
+     * Broadcasts a given message to the server after a given number of seconds passes
+     * @param message The message to be sent
+     * @param seconds The number of seconds that the message is to be delayed by
+     */
+    public void sendMessageLater(String message, int seconds, String color) {
+        switch (color) {
+            case "blue":
+                runMethodLater(() -> Bukkit.broadcastMessage(Bluefier.bluefy(message)), seconds);
+                break;
+            case "gold":
+                runMethodLater(() -> Bukkit.broadcastMessage(Bluefier.goldify(message)), seconds);
+                break;
+            case "silver":
+                runMethodLater(() -> Bukkit.broadcastMessage(Bluefier.silverfy(message)), seconds);
+                break;
+            case "bronze":
+                runMethodLater(() -> Bukkit.broadcastMessage(Bluefier.bronzify(message)), seconds);
+                break;
+            default:
+                runMethodLater(() -> Bukkit.broadcastMessage(message), seconds);
+        }
         runMethodLater(() -> Bukkit.broadcastMessage(message), seconds);
     }
 

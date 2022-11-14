@@ -1,4 +1,5 @@
 package jzeigler7.cmpplugin.commands;
+import jzeigler7.cmpplugin.Bluefier;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -35,7 +36,7 @@ public class setRef implements CommandExecutor {
         } else {
             referenceCoordinates.put(player, player.getLocation());
         }
-        player.sendMessage("Reference point has been updated!");
+        player.sendMessage(Bluefier.bluefy("Reference point has been updated!"));
         return true;
     }
 }

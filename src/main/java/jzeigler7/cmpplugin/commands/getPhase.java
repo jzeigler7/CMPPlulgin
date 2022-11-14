@@ -1,14 +1,11 @@
 package jzeigler7.cmpplugin.commands;
+import jzeigler7.cmpplugin.Bluefier;
 import jzeigler7.cmpplugin.CMPPlugin;
-import jzeigler7.cmpplugin.gamePhase;
-import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.event.Listener;
 import org.jetbrains.annotations.NotNull;
-
-import java.util.concurrent.TimeUnit;
 
 /**
  *
@@ -32,19 +29,19 @@ public class getPhase implements CommandExecutor, Listener {
             if (command.getName().equalsIgnoreCase("getPhase")) {
                 switch (CMPPlugin.currentPhase) {
                     case NONE:
-                        sender.sendMessage("Game is not in progress.");
+                        sender.sendMessage(Bluefier.bluefy("Game is not in progress."));
                         break;
                     case BEGINNING:
-                        sender.sendMessage("Phase 1 in progress.");
+                        sender.sendMessage(Bluefier.bluefy("Phase 1 in progress."));
                         break;
                     case BREAK:
-                        sender.sendMessage("Break in progress.");
+                        sender.sendMessage(Bluefier.bluefy("Break in progress."));
                         break;
                     case MIDDLE:
-                        sender.sendMessage("Phase 2 in progress.");
+                        sender.sendMessage(Bluefier.bluefy("Phase 2 in progress."));
                         break;
                     case END:
-                        sender.sendMessage("Phase 3 in progress.");
+                        sender.sendMessage(Bluefier.bluefy("Phase 3 in progress."));
                         break;
                     default:
                         throw new IllegalStateException("Unexpected value: " + CMPPlugin.currentPhase);

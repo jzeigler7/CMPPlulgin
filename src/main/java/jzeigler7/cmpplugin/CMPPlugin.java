@@ -21,7 +21,6 @@ import java.util.HashMap;
  */
 public final class CMPPlugin extends JavaPlugin implements Listener {
     public static HashMap<Player, Location> referenceCoordinates = new HashMap<>();
-    public static HashMap<Player, ArrayList<Location>> registries = new HashMap<>();
     public static HashMap<Material, Double> pointsMap = new HashMap<>();
     public static ArrayList<Location> recursivePlaceholder = new ArrayList<>();
     public static ArrayList<Location> stales = new ArrayList<>();
@@ -30,6 +29,13 @@ public final class CMPPlugin extends JavaPlugin implements Listener {
     public static boolean scoreCheckInProgress = false;
     @Override
     public void onEnable() {
+        scoreCheckInProgress = false;
+        gameInProgress = false;
+        currentPhase = gamePhase.NONE;
+        stales.clear();
+        recursivePlaceholder.clear();
+        pointsMap.clear();
+        referenceCoordinates.clear();
         Bukkit.getPluginManager().registerEvents(new CMPEvents(), this);
         getCommand("startCMP").setExecutor(new startCMP());
         getCommand("getPhase").setExecutor(new getPhase());

@@ -1,12 +1,10 @@
 package jzeigler7.cmpplugin;
-import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.scheduler.BukkitRunnable;
-import java.util.ArrayList;
 /**
  *
  * Serves to prevent a player from taking damage from other players if the current phase
@@ -39,9 +37,6 @@ public class CMPEvents implements Listener {
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player joinedPlayer = event.getPlayer();
-        if (CMPPlugin.registries.keySet().contains(joinedPlayer)) {
-            CMPPlugin.registries.put(joinedPlayer, new ArrayList<Location>());
-        }
         switch (CMPPlugin.currentPhase) {
             case BEGINNING:
                 sendPlayerMessageLater("Phase 1 is active! PVP is disabled.", joinedPlayer, 0);
@@ -59,13 +54,12 @@ public class CMPEvents implements Listener {
                 sendPlayerMessageLater("Phase 3 is active! PVP is disabled.", joinedPlayer, 0);
                 sendPlayerMessageLater("Fill your chests with as much stuff as possible! Dismantle your home for extra points!", joinedPlayer, 1);
                 break;
+            case BREAK:
+                joinedPlayer.kickPlayer("The break period is not over yet.");
+                break;
             default:
                 throw new IllegalStateException("Unexpected value: " + CMPPlugin.currentPhase);
         };
-
-        if (CMPPlugin.getCurrentPhase() == gamePhase.BREAK) {
-            joinedPlayer.kickPlayer("The break period is not over yet.");
-        }
     }
 
     /**
@@ -74,7 +68,7 @@ public class CMPEvents implements Listener {
      * @param seconds The number of seconds that the message is to be delayed by
      */
     public void sendPlayerMessageLater(String message, Player recipient, int seconds) {
-        runMethodLater(() -> recipient.sendMessage(message), seconds);
+        runMethodLater(() -> recipient.sendMessage(Bluefier.bluefy(message)), seconds);
     }
 
     /**

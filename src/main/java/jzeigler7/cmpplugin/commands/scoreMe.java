@@ -1,4 +1,8 @@
 package jzeigler7.cmpplugin.commands;
+import jzeigler7.cmpplugin.BlockRegisteredException;
+import jzeigler7.cmpplugin.Bluefier;
+import jzeigler7.cmpplugin.CheckInProgressException;
+import jzeigler7.cmpplugin.NoReferencePointException;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.command.Command;
@@ -12,8 +16,6 @@ import org.jetbrains.annotations.NotNull;
 import org.bukkit.block.Chest;
 import org.bukkit.block.Barrel;
 import org.bukkit.block.ShulkerBox;
-import java.util.Arrays;
-import java.util.List;
 import static jzeigler7.cmpplugin.CMPPlugin.*;
 import static org.bukkit.Material.*;
 
@@ -37,20 +39,24 @@ public class scoreMe implements CommandExecutor {
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         Player player = (Player) sender;
-        beginScoring(player);
         if (!scoreCheckInProgress) {
             scoreCheckInProgress = true;
             Location startingPoint = referenceCoordinates.get(player);
             if (startingPoint == null) {
-                player.sendMessage("You do not have a reference point set!");
-                player.sendMessage("Call /setref when standing next to a chest to set your reference point!");
+                player.sendMessage(Bluefier.bluefy("You do not have a reference point set!"));
+                player.sendMessage(Bluefier.bluefy("Call /setref when standing next to a chest to set your reference point!"));
             } else {
+                beginScoring(player);
                 stales.clear();
-                double score = allSourcesScore(startingPoint, player);
-                player.sendMessage(player.getName() + "'s current score: " + score + " points");
+                try {
+                    double score = allSourcesScore(startingPoint, player);
+                    player.sendMessage(Bluefier.bluefy(player.getName() + "'s current score: " + score + " points"));
+                } catch (BlockRegisteredException e) {
+                    player.sendMessage(Bluefier.bluefy("Your attempted claim overlaps with " + e.getOwner().getName() + "'s existing claim!"));
+                }
             }
         } else {
-            player.sendMessage("A score check is already in progress! Try again in a few seconds.");
+            player.sendMessage(Bluefier.bluefy("A score check is already in progress! Try again in a few seconds."));
         }
         finishItemScore(player);
         return true;
@@ -62,8 +68,6 @@ public class scoreMe implements CommandExecutor {
      * @param player The player to begin the scoring process for
      */
     public static void beginScoring(Player player) {
-        registries.remove(player);
-        System.out.println("Registries cleared!");
         recursivePlaceholder.clear();
     }
 
@@ -73,7 +77,6 @@ public class scoreMe implements CommandExecutor {
      * @param player The player whose scoring process has completed
      */
     public static void finishItemScore(Player player) {
-        registries.put(player, recursivePlaceholder);
         scoreCheckInProgress = false;
     }
 
@@ -85,35 +88,25 @@ public class scoreMe implements CommandExecutor {
      * @return The given player's score
      */
 
-    public static double getPlayerScore(Player player) {
+    public static double getPlayerScore(Player player) throws CheckInProgressException, NoReferencePointException {
+        if (scoreCheckInProgress) {
+            throw new CheckInProgressException("A check is already in progress!");
+        }
         beginScoring(player);
-        if (!scoreCheckInProgress) {
-            scoreCheckInProgress = true;
-            Location startingPoint = null;
-            referenceCoordinates.get(player);
-            if (startingPoint == null) {
-                finishItemScore(player);
-                return 0;
-            } else {
-                stales.clear();
-                double score = scoreFromBlock(startingPoint, startingPoint, player);
-                for (ItemStack i: player.getInventory()) {
-                    if (i != null) {
-                        score += appraiseItemStack(i);
-                    }
-                }
-                for (ItemStack i: player.getEnderChest()) {
-                    if (i != null) {
-                        score += appraiseItemStack(i);
-                    }
-                }
+        scoreCheckInProgress = true;
+        Location startingPoint = null;
+        startingPoint = referenceCoordinates.get(player);
+        if (startingPoint == null) {
+            throw new NoReferencePointException(player.getName() + " does not have a reference point set!");
+        } else {
+            stales.clear();
+            double score = -1;
+            try {
                 score = allSourcesScore(startingPoint, player);
+            } finally {
                 finishItemScore(player);
                 return score;
             }
-        } else {
-            finishItemScore(player);
-            return 0;
         }
     }
 
@@ -125,7 +118,7 @@ public class scoreMe implements CommandExecutor {
      * @return The sum of the point values in the player's chest network, held
      *         inventory, and Ender Chest inventory
      */
-    public static double allSourcesScore(Location startingPoint, Player player) {
+    public static double allSourcesScore(Location startingPoint, Player player) throws BlockRegisteredException {
         double score = scoreFromBlock(startingPoint, startingPoint, player);
         for (ItemStack i: player.getInventory()) {
             if (i != null) {
@@ -165,7 +158,7 @@ public class scoreMe implements CommandExecutor {
      * @return The sum of the point values held in all six adjacent blocks and all such adjacent blocks to those
      * blocks, and so on until all contiguous storage containers have been evaluated
      */
-    public static double adjRec(Location block, Location playerRef, Player player) {
+    public static double adjRec(Location block, Location playerRef, Player player) throws BlockRegisteredException {
         double sum = 0;
         stales.add(block);
         Location up = new Location(block.getWorld(), block.getBlockX(), block.getBlockY() + 1, block.getBlockZ());
@@ -194,16 +187,8 @@ public class scoreMe implements CommandExecutor {
      * @param player The player being scored
      * @return The sum of the appraised value of the given block and the values of its six neighbors
      */
-    public static double scoreFromBlock(@NotNull Location block, Location playerRef, Player player) {
-        System.out.println("Checking the " + block.getBlock().getType().toString() + " at  location " + block.getBlockX() + ", " + block.getBlockY() + ", " + block.getBlockZ() + ".  Storage container? " + isStorageContainer(block));
+    public static double scoreFromBlock(@NotNull Location block, Location playerRef, Player player) throws BlockRegisteredException {
         double sum = 0;
-        for (Player pr: registries.keySet()) {
-            if (registries.get(pr).contains(block)) {
-                player.sendMessage("One or more of the chests in your claim have already been claimed by " + pr.getName() + "! " +
-                "Use /setRef next to your own chests!");
-                return 0;
-            }
-        }
         if (!isStale(block)) {
             boolean isBlockPlayerRef = block.equals(playerRef);
             if (isStorageContainer(block)) {
@@ -223,16 +208,25 @@ public class scoreMe implements CommandExecutor {
      */
     public static boolean isStorageContainer(Location block) {
         Material type = block.getBlock().getType();
-        return ((type == CHEST) || (type == BARREL)   || (type == TRAPPED_CHEST) ||
-                (type == WHITE_SHULKER_BOX) || (type == LIGHT_GRAY_SHULKER_BOX) ||
-                (type == GRAY_SHULKER_BOX) || (type == BLACK_SHULKER_BOX) ||
-                (type == BROWN_SHULKER_BOX) || (type == RED_SHULKER_BOX) ||
-                (type == ORANGE_SHULKER_BOX) || (type == YELLOW_SHULKER_BOX) ||
-                (type == LIME_SHULKER_BOX) || (type == GREEN_SHULKER_BOX) ||
-                (type == CYAN_SHULKER_BOX) || (type == LIGHT_BLUE_SHULKER_BOX) ||
-                (type == BLUE_SHULKER_BOX) || (type == PURPLE_SHULKER_BOX) ||
-                (type == MAGENTA_SHULKER_BOX) || (type == PINK_SHULKER_BOX) ||
-                (type == SHULKER_BOX));
+        return ((type == CHEST) || (type == BARREL) || (type == TRAPPED_CHEST) || isShulkerBox(block.getBlock().getType()));
+    }
+
+    /**
+     * Determines if a passed-in block is a Shulker Box.
+     * @param material The material to be evaluated
+     * @return True if the evaluated block is a Shulker Box
+     *         of any color
+     */
+    public static boolean isShulkerBox(Material material) {
+        return (material == WHITE_SHULKER_BOX) || (material == LIGHT_GRAY_SHULKER_BOX) ||
+                (material == GRAY_SHULKER_BOX) || (material == BLACK_SHULKER_BOX) ||
+                (material == BROWN_SHULKER_BOX) || (material == RED_SHULKER_BOX) ||
+                (material == ORANGE_SHULKER_BOX) || (material == YELLOW_SHULKER_BOX) ||
+                (material == LIME_SHULKER_BOX) || (material == GREEN_SHULKER_BOX) ||
+                (material == CYAN_SHULKER_BOX) || (material == LIGHT_BLUE_SHULKER_BOX) ||
+                (material == BLUE_SHULKER_BOX) || (material == PURPLE_SHULKER_BOX) ||
+                (material == MAGENTA_SHULKER_BOX) || (material == PINK_SHULKER_BOX) ||
+                (material == SHULKER_BOX);
     }
 
     /**
@@ -294,16 +288,12 @@ public class scoreMe implements CommandExecutor {
      */
     public static double appraiseItemStack(ItemStack itemStack) {
         Material itemMaterial = itemStack.getType();
-        Material[] allShulkerBoxesAL = {Material.WHITE_SHULKER_BOX, Material.LIGHT_GRAY_SHULKER_BOX, Material.YELLOW_SHULKER_BOX,
-        Material.GRAY_SHULKER_BOX, Material.BLACK_SHULKER_BOX, Material.BROWN_SHULKER_BOX, Material.RED_SHULKER_BOX, Material.ORANGE_SHULKER_BOX,
-        Material.LIME_SHULKER_BOX, Material.GREEN_SHULKER_BOX, Material.CYAN_SHULKER_BOX, Material.LIGHT_BLUE_SHULKER_BOX, Material.BLUE_SHULKER_BOX,
-        Material.PURPLE_SHULKER_BOX, Material.MAGENTA_SHULKER_BOX, Material.PINK_SHULKER_BOX, Material.SHULKER_BOX};
-        List<Material> allShulkerBoxes = Arrays.asList(allShulkerBoxesAL);
-        if (!pointsMap.keySet().contains(itemStack.getType()))
-            return 0;
-         else if (allShulkerBoxes.contains(itemMaterial))
+        if (isShulkerBox(itemMaterial)) {
             return appraiseShulkerBox(itemStack);
-         else
+        } else if (pointsMap.keySet().contains(itemMaterial)) {
             return pointsMap.get(itemMaterial) * itemStack.getAmount();
+        } else {
+            return 0;
+        }
     }
 }
