@@ -29,10 +29,10 @@ public class rankings implements CommandExecutor {
                 } else {
                     currPlayerString = Scorer.getTieString(currScore, scoresToPlayers);
                 }
-                rankPlayer = ("Rank " + rank + ": " + currPlayerString);
+                rankPlayer = ("Rank " + rank + ": " + currPlayerString + ", " + currScore);
                 if (rank == 1) {
                     sender.sendMessage(Bluefier.goldify(rankPlayer));
-                } else if (rank == 2){
+                } else if (rank == 2) {
                     sender.sendMessage(Bluefier.silverfy(rankPlayer));
                 } else {
                     sender.sendMessage(Bluefier.bronzify(rankPlayer));
